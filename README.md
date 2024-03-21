@@ -21,7 +21,7 @@ To build the project, type
 $ pytask
 ```
 
-See young_1993.pdf for the related research paper that includes the project results.
+See young_1993.pdf for the related research paper.
 
 ## Project Description
 
