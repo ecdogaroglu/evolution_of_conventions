@@ -21,7 +21,7 @@ To build the project, type
 $ pytask
 ```
 
-See young_1993.pdf for the related research paper.
+See young_1993.pdf for a brief summary of the original paper together with explanations of the code implementation and the related results.
 
 ## Project Description
 
@@ -59,9 +59,9 @@ Through utilization of best response probabilities, weights of two directed grap
 
 The stationary distribution, graph of recurrent communication classes and minimum arboresences are plotted for a better visual understanding.
 
-### young_1993.pdf and young_1993.tex
+### young_1993.tex
 
-A brief summary of the related paper is presented together with the explanation of the code implementation and the related results.
+Analyse the research results to be complied into a pdf file.
 
 ## References
 
