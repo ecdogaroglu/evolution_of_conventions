@@ -5,7 +5,7 @@ import pytask
 from pytask_latex import compilation_steps as cs
 from young_1993.config import BLD, PAPER_DIR
 
-documents = ["young_1993", "young_1993_pres"]
+documents = ["young_1993"]
 
 for document in documents:
 

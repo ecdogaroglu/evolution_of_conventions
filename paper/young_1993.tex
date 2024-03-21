@@ -59,13 +59,11 @@
 
 \begin{document}
 
-\title{The Evolution of Conventions: A Computational Adaptation\thanks{Ege Can Dogaroglu, University of Bonn. Email: \href{mailto:ecdogaroglu@gmail.com}{\nolinkurl{ecdogaroglu [at] gmail [dot] com}}.}}
+\title{The Evolution of Conventions: A Computational Adaptation\thanks{Ege Can Doğaroğlu, University of Bonnn. Email: \href{mailto:ecdogaroglu@uni-bonn.de}{\nolinkurl{ecdogaroglu@uni-bonn.de}}.}}
 
-\author{Ege Can Dogaroglu}
+\author{Ege Can Doğaroğlu}
 
 \date{
-    {\bf Preliminary -- please do not quote}
-    \\[1ex]
     \today
 }
 
@@ -73,8 +71,16 @@
 
 
 \begin{abstract}
-    Some abstract here.
-\end{abstract}
+    This project is a computational adaptation of the equilibrium selection model in Young (1993).
+    The paper introduces the concept of "adaptive play", which is similar to fictitous play, although
+    players are allowed to make mistakes and have limited information. Theorem 1 of the paper shows that
+    under certain conditions adaptive play converges to pure strategy Nash equilibria, which are the absorbing
+    states of the underlying stochastic process. The paper characterizes two distinct processes as Markov chains, 
+    one where mistakes are allowed and another, where they are not. Theorem 2 is technically interesting in that 
+    it documents an equivalence relation between certain properties of these two process, namely, stochastic stability
+    and minimum stochastic potential by application of graph theory. This explicit characterization, together with 
+    the availability of efficient algorithms makes this paper an interesting candidate for a computational adaptation.
+    The project mainly focuses on computing the states with those properties to portray the equivalence relation.\end{abstract}
 
 \clearpage
 
@@ -82,40 +88,305 @@
 \section{Introduction} % (fold)
 \label{sec:introduction}
 
-If you are using this template, please cite this item from the references:
-\citet{GaudeckerEconProjectTemplates}.
 
-The data set for the example project is taken from
-\url{https://www.stem.org.uk/resources/elibrary/resource/28452/large-datasets-stats4schools}.
-It contains data on smoking habits in the UK, with 1691 observations and 12 variables.
-We consider only 4 of the 12 features for the prediction of the variable
-\texttt{smoking}: \texttt{marital\_status}, \texttt{highest\_qualification},
-\texttt{gender} and \texttt{age}. We model the dependence using a Logistic model. All
-numerical features are included linearly, while categorical features are expanded into
-dummy variables. Figures below illustrate the model predictions over the lifetime. You
-will find one figure and one estimation summary table for each installed programming
-language.
+This project is a computational adaptation of \Citet{young1993evolution}.
+The paper introduces a less restricting version of fictitious play called \textit{adaptive play},
+where in an n person repeated game, each player samples a random portion of \textit{recent history}
+and plays optimally against this sample of play, as long as there are no mistakes.
+The author shows that, for a large class of \textit{weakly acyclic games}, if the samples are
+sufficiently incomplete and if there are no mistakes, the adaptive play converges almost surely
+to a pure strategy Nash Equilibrium. Once this equilibrium is played for as long as anyone can
+remember, it's said to have become a \textit{convention,} which are the \textit{absorbing states}
+of the underlying process.
+
+When mistakes are present there are no absorbing states but if the probability of making a mistake
+is sufficiently small, then \textit{the stationary distribution} of the play is concentrated around
+a particular subset of pure strategy Nash equilibria, which are called \textit{stochastically stable}.
+
+Theorem 2 of the paper tells us that stochastically stable states of $P^{\epsilon}$ are the states
+contained in the recurrent communication classes of $P^0$ with minimum stochastic potential.
+
+\section{Model} % (fold)
+\label{sec:model}
+
+$\Gamma$ is an $n$-person game in strategic form where $S_i$ denotes the strategies available to
+player $i$. $N$ is a finite population of individuals partitioned into $n$ nonempty classes. It's
+assumed that individuals in each classes have the same utility function $u_i(s)$ for strategy-tuples
+$s=(s_1, s_2,...,s_n) \in \Pi S_i$. In each period $t$, one individual is drawn from each class to
+play their appropriate role  in the game. While player identities for each role may change, their
+type and available strategies remain constant. There is no learning from past on individual level,
+so it can be thought that each individual plays the game only once and then \textit{dies.} The
+strategies taken $s(t)$ are then stored, where sequences of strategy-tuples are referred to as
+\textit{histories}. Before playing the game players "ask around" and individually sample play
+histories of size $k$ from the most recent history of size $m$, where $m$ can be thought as
+society's cumulative memory size. $k/m$ measures the \textit{completeness} of the agents' information.
+The probability distribution by which the sampling is made is not important as long as it has
+full support.  For a given memory size $m$, all possible such histories of play make up the
+state space $H$ for the finite Markov chain we will consider.
+
+\subsubsection*{Code Implementation}
+The function \texttt{define\_state\_space} in \texttt{game.py}is used to initiate the state space for given numbers of
+actions, players and history size $m$. First all possible plays that can occur in a period are
+calculated by taking the cartesion product of the set of actions \textit{num\_players} times.
+Then over the set of possible plays, the cartesion product function is again implemented $m$ times,
+to find all possible histories. The result is a numpy array of size
+\[(\textit{num\_act}^\textit{num\_players})^\textit{m} \times \textit{m} \times \textit{num\_players}\]
+
+\section{Parametrization} % (fold)
+\label{subsec:param}
+The project currently only allows for two players. Number of actions can be easily increased. (default=3).
+As the state space grows exponentially with the memory size, unfortunately it's not feasible to
+increase $m$ beyond 4 or 5 without long computation times. A similar issue
+concerns the sample size $k$ (default=1) due to permutation calculations. These two limitations are the main short comings
+of the project as stochastic variation through large samples and insufficient information through
+large memory is desirable for the paper outcomes. It's also explicitly stated in the theorems that $k$ must be much smaller than $m$
+for some results to apply. $\epsilon$ is set to 0.01 by default which is generally close enough to
+zero for asymptotic results. The payoff matrix is the replication of the 3x3 game in the original paper.
 
 
+\section{Markov Chains} % (fold)
+\label{subsec:mc}
+We start from an arbitrary initial state $h(m)$. A history (state) $h'$ is \textit{succesor} of
+state $h$ if and only if $h'$ is obtained by deleting the left-most element of h and adjoining
+a new right-most element.
+
+\subsection{Unperturbed Process} % (fold)
+\label{subsec:mc_up}
+
+For the adaptive play without mistakes, transition probability that the process will move from state
+ $h$ to a succesor state $h'$ is
+\[ P_{hh'}^{0} = \Pi_{i=1,...,n} p_i(s_i \mid h) \]
+where $ p_i(\cdot)$ is a \textit{best reply distribution}, whose elements are only positive if there
+exists a sample of size k to which the strategy is a best-response, for the given state. For any
+$h'$ that's not a successor state, $P_{hh'}^{0} = 0$. $P_{hh'}^{0}$. The process $P_{hh'}^{0} = 0$
+is referred to as the \textit{unperturebed process with no mistakes.} Through this function,
+the transition matrix of the markov chain for the unperturbed process is characterized.
+
+\subsubsection*{Code Implementation}
+The function \texttt{compute\_trans\_matrix\_unperturbed} in \texttt{markov\_chain.py} creates the
+corresponding transition matrix and saves the resulting numpy array in a \texttt{.npy} file to be
+used later. It uses the \texttt{\_trans\_prob\_unperturbed} and \texttt{\_best\_response\_prob} helper
+helper functions to perform above mentioned calculations, together with the \texttt{quantecon} library.
+See the related \texttt{docstrings} for additional information on the methodology.
+
+
+\subsection{Perturbed Process} % (fold)
+\label{subsec:mc_p}
+
+Suppose a subset $J$ of players experiment (or make mistakes) and don't optimize. Conditional on this
+event, the transition probability that the process will move from state $h$ to a succesor
+ state $h'$ is
+\[ Q_{hh'}^{J} = \Pi_{j \in J} q_j(s_j \mid h) \Pi_{j \notin J} p_j(s_j \mid h) \]
+where $ q_j(\cdot)$ is the conditional probability of choosing the strategy by experimenting in the given
+state. For any $h'$ that's not a successor state, $Q_{hh'}^{0} = 0$. The perturbed process then has
+the transition function
+\[ P_{hh'}^{\epsilon} = \left (\Pi_{i,..,n} (1- \epsilon \lambda_i) \right ) P_{hh'}^{0} +
+                         \sum_{J \subseteq N} \epsilon ^{\mid J \mid} \left ( \Pi_{j \in J} \lambda_j \right ) \left ( \Pi_{j \notin J} (1- \epsilon \lambda_j)\right ) Q_{hh'}^{J} \]
+
+where $ \epsilon \lambda_i > 0$ is the probability that player $i$ experiments, with individual ($\lambda_i$)
+and general ($\epsilon$) components. The process $P_{hh'}^{\epsilon}$ is referred to as the
+\textit{perturbed process with mistakes.} Through this function, the transition matrix of the markov chain for the perturbed process is characterized.
+
+
+\subsubsection*{Code Implementation}
+The function \texttt{compute\_trans\_matrix\_perturbed} in \texttt{markov\_chain.py} creates the
+corresponding transition matrix and saves the resulting numpy array in a \texttt{.npy} file to be
+used later. It uses the \texttt{\_trans\_prob\_perturbed} and \texttt{\_best\_response\_prob} helper
+helper functions to perform above mentioned calculations, together with the \texttt{quantecon} library.
+See the related \texttt{docstrings} for additional information on the methodology. As it's shown in
+the paper that the individual component of experimentation probability doesn't play a role in
+the analysis, I also drop this variable in the calculations.
 
 \begin{figure}[H]
 
     \centering
-    \includegraphics[width=0.85\textwidth]{../python/figures/smoking_by_marital_status}
+    \includegraphics[width=0.7\textwidth]{../bld/python/figures/s_distr.png}
 
-    \caption{\emph{Python:} Model predictions of the smoking probability over the
-        lifetime. Each colored line represents a case where marital status is fixed to one
-        of the values present in the data set.}
-    \label{fig:python-predictions}
+    \caption{Stationary distribution of the perturbed process ($\epsilon$ = 0.01)}
+    \label{fig:python-sd}
+
+\end{figure}
+
+\section{Stochastic Stability} % (fold)
+\label{subsec:mc_ss}
+
+Stationary distribution $\mu^{\epsilon}$ of the perturbed process with $\epsilon$ close to zero, has by definition the property that
+\[\mu^{\epsilon} P^{\epsilon} = \mu^{\epsilon}\]
+Each element $\mu_{h}^{\epsilon}$ of the distribution can then be seen as the cumulative relative frequency with which
+state $h$ will be observed at any given time $t$, if $t$ is sufficiently large. We say that a state $h \in H$ is \textit{stochastically stable} relative
+to the process $P^{\epsilon}$ if at the limit it will be observed with positive probability i.e.
+\[ lim_{\epsilon \to 0}\mu_{h}^{\epsilon} > 0 \]
+For $\epsilon$ = 0.01 and the 3x3 game example given in \Citet{young1993evolution} all three pure strategy Nash equilibria
+seem to have positive probability of occuring in the limit. These states are the conventions where both players play the same action (action 1: state id = 0,
+action 2: state id = 364, action 3: state id = 728) for three consecutive periods.
+
+
+
+\subsubsection*{Code Implementation}
+The function \texttt{compute\_stoch\_stab\_states} in \texttt{markov\_chain.py} creates the
+corresponding stationary distribution for the markov chain that is defined by the related transition
+matrix and returns the states that have probabilities of occuring above the threshold of 0.01.
+It uses the \texttt{quantecon} library.
+
+
+\begin{table}
+    \begin{center}
+    \centering
+    \input{../bld/python/tables/ss_states.tex}
+    \caption{\label{tab:python-sd}Stationary distribution probabilities
+    of stochastically stable states. ($\epsilon$ = 0.01)}
+        \end{center}
+
+\end{table}
+
+
+\section{Stochastic Potential} % (fold)
+\label{subsec:mc_sp}
+
+Now we think of the state space $H$ as the vertices of a directed graph, where each node
+corresponds to a state and for every pair of states there is a directed edge with weights
+corresponding to \textit{resistances} along the path from one state to another. Resistances
+are simply the number of mistakes that have to be made to transition from one state to another.
+If this transition can be achieved through optimal behavior the resistance is zero.
+If on the other hand the target state is not a successor of the current state, the resistance is
+equal to infinity as the transition is impossible. Then we create another directed
+graph where vertices correspond to \textit{recurrent communication classes} of the unperturbed process.
+For this graph, weights are sum of the resistances along the \textit{shortest path} from one class to another.
+As by definition, the resistance within the RCCs are equal to zero, we can just pick representative states for
+each class to calculate the shortest paths. After creating this graph we look for possible \textit{arboresences},
+where for each state, the minimum arboresence weight where this state is the root,
+is the \textit{stochastic potential} of that state.
+
+\begin{figure}[H]
+
+    \centering
+    \includegraphics[width=0.7\textwidth]{../bld/python/figures/G_rcc.png}
+
+    \caption{Directed graph of the recurrent communication classes.}
+    \subcaption*{Each node corresponds to a state, where each row of the state correspons
+    to a stage game play. 1: "Action 1", 2: "Action 2", 3: "Action 3"}
+
+    \label{fig:python-grcc}
+
+\end{figure}
+
+\newtheorem*{theorem}{Theorem 2}
+\begin{theorem}[Young, (1993) - Shortened]
+    Let $\Gamma$ be an n-person game on a finite strategy space. The stochastically stable
+    states of adaptive play $P^{\epsilon}$ are the states contained in the recurrent communication
+    classes of $P^{0}$ with minimum stochastic potential.
+    \end{theorem}
+
+The same conventions that were stochastically stable also make up the recurrent communication classes of the unperturbed
+process and share the same minimum level for stochastic potential. The equivalence relation between the stochastic stability
+and stochastic potential is inline with the statement of the theorem.
+
+\begin{figure}
+    \centering
+    \begin{minipage}{.5\textwidth}
+      \centering
+      \includegraphics[width=1\linewidth]{../bld/python/figures/edmonds_arboresence.png
+      }
+      \captionof*{figure}{Direct Implementation}
+      \label{fig:ar0}
+    \end{minipage}%
+    \begin{minipage}{.5\textwidth}
+      \centering
+      \includegraphics[width=1\linewidth]{../bld/python/figures/arb_0.png
+      }
+      \captionof*{figure}{Iterator 1}
+      \label{fig:arb1}
+    \end{minipage}
+    \caption{Minimum Arboresences}
+\end{figure}
+
+
+\subsubsection*{Code Implementation}
+The mistakes and resistances are computed through best response probabilities over all possible samples, similar to the approach
+in computing transition probabilities.\texttt{quantecon} library allows for simple computation of recurrent communication
+classes of a given markov chain. \texttt{networkx} library is then used to create the directed graphs with corresponding
+weights and calculating the shortest paths. \texttt{networkx} library also offers a direct implementation of \Citet{edmonds1967optimum}'s
+algorithm to find optimum arboresences, which is also mentioned by \Citet{young1993evolution}. The function \texttt{find\_edmonds\_arboresence}
+in \texttt{graph.py} uses this direct implementation. However this method only returns a single such arboresence even if
+multiple of them have the same minimum weight. In the library also an arboresence iterator is available,
+which returns all of the arboresences of a given graph in increasing order of weights by implementing an
+algorithm due to \Citet{sorensen2005algorithm}. The function \texttt{find\_states\_with\_min\_stoch\_pot} in \texttt{graph.py} utilizes this iterator and
+returns all arboresences with minimum weights and their corresponding roots, which are the states with minimum
+stochastic potential.
+
+
+
+
+This project uses the reproducible project template by \Citet{GaudeckerEconProjectTemplates}.
+
+
+
+\setstretch{1}
+\printbibliography
+\setstretch{1.5}
+
+\newpage
+
+\begin{figure}
+    \centering
+    \begin{minipage}{.5\textwidth}
+        \centering
+        \includegraphics[width=1\linewidth]{../bld/python/figures/arb_1.png
+        }
+        \captionof*{figure}{Iterator 2}
+        \label{fig:arb2}
+    \end{minipage}%
+    \begin{minipage}{.5\textwidth}
+        \centering
+        \includegraphics[width=1\linewidth]{../bld/python/figures/arb_2.png
+        }
+        \captionof*{figure}{Iterator 3}
+        \label{fig:arb3}
+    \end{minipage}
+
+    \centering
+    \begin{minipage}{.5\textwidth}
+        \centering
+        \includegraphics[width=1\linewidth]{../bld/python/figures/arb_3.png
+        }
+        \captionof*{figure}{Iterator 4}
+        \label{fig:arb4}
+    \end{minipage}%
+    \begin{minipage}{.5\textwidth}
+        \centering
+        \includegraphics[width=1\linewidth]{../bld/python/figures/arb_4.png
+        }
+        \captionof*{figure}{Iterator 5}
+        \label{fig:arb5}
+    \end{minipage}
+
+
+    \centering
+    \begin{minipage}{.5\textwidth}
+        \centering
+        \includegraphics[width=1\linewidth]{../bld/python/figures/arb_5.png
+        }
+        \captionof*{figure}{Iterator 6}
+        \label{fig:arb6}
+    \end{minipage}%
+    \begin{minipage}{.5\textwidth}
+        \centering
+        \includegraphics[width=1\linewidth]{../bld/python/figures/arb_6.png
+        }
+        \captionof*{figure}{Iterator 7}
+        \label{fig:arb7}
+    \end{minipage}
+    \caption{Minimum Arboresences}
+    \subcaption*{Each node corresponds to a state, where each row of the state correspons
+    to a stage game playy. 1: "Action 1", 2: "Action 2", 3: "Action 3"}
 
 \end{figure}
 
 
-\begin{table}[!h]
-    \input{../python/tables/estimation_results.tex}
-    \caption{\label{tab:python-summary}\emph{Python:} Estimation results of the
-        linear Logistic regression.}
-\end{table}
+
+
+
+
 
 
 
@@ -124,9 +395,6 @@ language.
 
 
 
-\setstretch{1}
-\printbibliography
-\setstretch{1.5}
 
 
 % \appendix

@@ -1,1 +1,1 @@
-"""Code for producing the results of the The Evolution of Conventions: A Computational Adaptation project."""
+"""Code for producing the results of the Reproducible Research Template project."""
